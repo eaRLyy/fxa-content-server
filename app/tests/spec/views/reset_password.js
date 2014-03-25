@@ -94,15 +94,18 @@ function (chai, View, FxaClient, WindowMock, RouterMock, TestHelpers) {
       });
     });
 
-    describe('submit with unknown email address', function () {
-      it('shows an error message', function (done) {
+    describe('submit with unknown email address', function (done) {
+      it('rejects the promise', function (done) {
         view.$('input[type=email]').val('unknown@testuser.com');
 
-        view.on('error', function () {
-          done();
-        });
-
-        view.submit();
+        view.submit()
+              .then(function () {
+                wrapAssertion(function () {
+                  assert.fail();
+                });
+              }, function (err) {
+                done();
+              });
       });
     });
   });

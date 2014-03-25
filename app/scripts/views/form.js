@@ -10,7 +10,9 @@
  * - isValidEnd (optional)
  * - showValidationErrorsStart (optional)
  * - showValidationErrorsEnd (optional)
+ * - beforeSubmit (optional)
  * - submit (required)
+ * - afterSubmit (optional)
  *
  * See documentation for an explanation of each.
  */
@@ -20,15 +22,19 @@
 define([
   'underscore',
   'jquery',
+  'p-promise',
   'views/base',
-  'views/tooltip'
+  'views/tooltip',
+  'lib/fxa-client'
 ],
-function (_, $, BaseView, Tooltip) {
+function (_, $, p, BaseView, Tooltip, FxaClient) {
   var t = BaseView.t;
 
   var FormView = BaseView.extend({
     constructor: function (options) {
       BaseView.call(this, options);
+
+      this.fxaClient = new FxaClient();
 
       // attach events of the descendent view and this view.
       this.delegateEvents(_.extend({}, FormView.prototype.events, this.events));
@@ -41,15 +47,38 @@ function (_, $, BaseView, Tooltip) {
     },
 
     enableSubmitIfValid: function () {
-      var enabled = this.isValid();
+      if (this.isValid()) {
+        this.enableForm();
+      } else {
+        this.disableForm();
+      }
+    },
 
-      var submitButton = this.$('button[type="submit"]');
-      submitButton[enabled ? 'removeClass' : 'addClass']('disabled');
+    disableForm: function () {
+      this.$('button[type=submit]').addClass('disabled').attr('disabled', 'disabled');
+    },
+
+    enableForm: function () {
+      this.$('button[type=submit]').removeClass('disabled').removeAttr('disabled');
     },
 
     validateAndSubmit: function () {
       if (this.isValid()) {
-        this.submit();
+        /**
+         * Unless overridden, beforeSubmit and afterSubmit disable then
+         * re-enable form submission. This prevents the form from being
+         * submitted multiple times while an XHR request is in flight. This
+         * behavior can be overridden in subclasses by overridding beforeSubmit
+         * and afterSubmit.
+         */
+        return this.beforeSubmit()
+                  .then(_.bind(function (shouldSubmit) {
+                    if (shouldSubmit) {
+                      return this.submit();
+                    }
+                  }, this))
+                  .then(_.bind(this.afterSubmit, this))
+                  .then(null, _.bind(this.displayError, this));
       } else {
         this.showValidationErrors();
       }
@@ -261,12 +290,35 @@ function (_, $, BaseView, Tooltip) {
     },
 
     /**
-     * Descendent views must override!
+     * Descendent views can override. If overridden, must return a promise.
      *
-     * Submit form data to the server. Only called if isValid returns true
+     * Descendent views may want to override this to allow multiple form
+     * submissions or to disable form submissions. If a descendent view wants
+     * to prevent form submission, return a promise that resolves to false.
+     */
+    beforeSubmit: function () {
+      this.disableForm();
+      // return a promise to chain off of.
+      return p(true);
+    },
+
+    /**
+     * Descendent views must override!
+     * Submit form data to the server. Only called if isValid returns true.
+     *
+     * @return {promise}
      */
     submit: function () {
-      // override in child views to submit data to backend.
+    },
+
+    /**
+     * Descendent views can override.
+     *
+     * Descendent views may want to override this to allow
+     * multiple form submissions.
+     */
+    afterSubmit: function () {
+      this.enableForm();
     }
   });
 

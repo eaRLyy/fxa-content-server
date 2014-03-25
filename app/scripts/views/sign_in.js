@@ -11,12 +11,11 @@ define([
   'stache!templates/sign_in',
   'lib/constants',
   'lib/session',
-  'lib/fxa-client',
   'lib/password-mixin',
   'lib/url',
   'lib/auth-errors'
 ],
-function (_, BaseView, FormView, SignInTemplate, Constants, Session, FxaClient, PasswordMixin, Url, AuthErrors) {
+function (_, BaseView, FormView, SignInTemplate, Constants, Session, PasswordMixin, Url, AuthErrors) {
   var t = BaseView.t;
 
   var View = FormView.extend({
@@ -71,9 +70,8 @@ function (_, BaseView, FormView, SignInTemplate, Constants, Session, FxaClient, 
       var email = Session.forceAuth ? Session.forceEmail : this.$('.email').val();
       var password = this.$('.password').val();
 
-      var client = new FxaClient();
       var self = this;
-      client.signIn(email, password)
+      return this.fxaClient.signIn(email, password)
             .then(function (accountData) {
               if (accountData.verified) {
                 // Don't switch to settings if we're trying to log in to
@@ -82,7 +80,7 @@ function (_, BaseView, FormView, SignInTemplate, Constants, Session, FxaClient, 
                   self.navigate('settings');
                 }
               } else {
-                return client.signUpResend()
+                return self.fxaClient.signUpResend()
                   .then(function () {
                     self.navigate('confirm');
                   });
@@ -119,9 +117,8 @@ function (_, BaseView, FormView, SignInTemplate, Constants, Session, FxaClient, 
       }
 
       var email = Session.forceEmail;
-      var client = new FxaClient();
       var self = this;
-      client.passwordReset(email)
+      this.fxaClient.passwordReset(email)
               .then(function () {
                 self.navigate('confirm_reset_password');
               }, function (err) {

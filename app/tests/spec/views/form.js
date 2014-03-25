@@ -8,11 +8,12 @@
 define([
   'chai',
   'jquery',
+  'p-promise',
   'views/form',
   'stache!templates/test_template',
   '../../lib/helpers'
 ],
-function (chai, $, FormView, Template, TestHelpers) {
+function (chai, $, p, FormView, Template, TestHelpers) {
   /*global describe, beforeEach, afterEach, it*/
   var assert = chai.assert;
 
@@ -68,10 +69,13 @@ function (chai, $, FormView, Template, TestHelpers) {
     });
 
     describe('validateAndSubmit', function () {
-      it('submits form if isValid returns true', function () {
+      it('submits form if isValid returns true', function (done) {
         view.formIsValid = true;
-        view.validateAndSubmit();
-        assert.isTrue(view.formSubmitted);
+        view.validateAndSubmit()
+            .then(function () {
+              assert.isTrue(view.formSubmitted);
+              done();
+            });
       });
 
       it('shows validation errors if isValid returns false', function () {
