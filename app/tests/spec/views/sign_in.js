@@ -118,6 +118,9 @@ function (chai, $, View, Session, FxaClient,
                   }, done);
                 });
                 view.submit();
+              })
+              .then(null, function (err) {
+                done(new Error(err));
               });
       });
 

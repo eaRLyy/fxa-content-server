@@ -48,6 +48,9 @@ function (chai, View, FxaClient, RouterMock) {
               .then(function () {
                  view.on('resent', done);
                  view.resend();
+              })
+              .then(null, function (err) {
+                done(new Error(err));
               });
 
       });

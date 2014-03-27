@@ -49,9 +49,12 @@ function (chai, View, FxaClient, RouterMock) {
                 return client.passwordReset(email);
               })
               .then(function () {
-                   view.on('resent', done);
-                  view.resend();
-                });
+                view.on('resent', done);
+                view.resend();
+              })
+              .then(null, function (err) {
+                done(new Error(err));
+              });
 
       });
 
